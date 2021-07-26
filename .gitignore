@@ -1,2 +1,6 @@
 .idea
 *.iml
+dist/
+node_modules/
+.idea/
+*.iml

@@ -1,0 +1,33 @@
+{
+  "name": "@service-t/api",
+  "version": "0.0.1-alpha.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:integ": "./node_modules/.bin/jest --config jest.integ.config.js --forceExit --detectOpenHandles",
+    "coverage:integ": "./node_modules/.bin/jest --config jest.integ.config.js --forceExit --coverage --verbose",
+    "coverage": "jest --coverage",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/joi": "^17.2.3",
+    "@types/lodash": "^4.14.171",
+    "@typescript-eslint/eslint-plugin": "^4.28.3",
+    "@typescript-eslint/parser": "^4.28.3",
+    "eslint": "^7.31.0",
+    "jest": "^27.0.6",
+    "ts-jest": "^27.0.3",
+    "ts-node": "^10.1.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "joi": "^17.4.1",
+    "lodash": "^4.17.21"
+  }
+}

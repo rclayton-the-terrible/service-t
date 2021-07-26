@@ -1,5 +1,5 @@
 {
-  "name": "service-t-root",
+  "name": "service-t",
   "private": true,
   "devDependencies": {
     "lerna": "^4.0.0"
