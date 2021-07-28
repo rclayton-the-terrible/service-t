@@ -3,20 +3,20 @@ import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
 import { BaseDeps } from '@service-t/core/dist/deps/BaseDeps';
 import { Express, Request, Response, NextFunction, RequestHandler } from 'express';
 import { Service, ServiceContext, ServicePlugin, RegistryMap } from '@service-t/core/dist/model/Service';
-
-export type GObject = Record<string, unknown>;
+import {SomeObject} from "@service-t/api/dist/SomeObject";
 
 export interface WebContext<
-  TConfig extends GObject = any,
-  TDeps extends GObject = any,
-  TRegistry extends RegistryMap = RegistryMap
-  > extends ServiceContext<TConfig, TDeps, TRegistry> {
+  TConfig extends SomeObject = any,
+  TDeps extends SomeObject = any,
+  TRegistry extends RegistryMap = RegistryMap,
+  TScopedDeps extends SomeObject = any,
+  > extends ServiceContext<TConfig, TDeps & TScopedDeps, TRegistry> {
   app: Express,
 }
 
 export type ScopeDepsFn<
-  TScopedDeps extends GObject = GObject,
-  TDeps extends GObject = GObject,
+  TScopedDeps extends SomeObject = SomeObject,
+  TDeps extends SomeObject = SomeObject,
   TConfig extends BaseConfig = BaseConfig,
   TRegistry extends RegistryMap = RegistryMap
   > = (req: Request, ctx: WebContext<BaseConfig & TConfig, BaseDeps & TDeps, TRegistry>) => Promise<NameAndRegistrationPair<TScopedDeps>>;
@@ -35,10 +35,10 @@ export type Handler = InjectedHandler | RequestHandler;
 export type Methods = 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head';
 
 export interface DangerZone<
-  TConfig extends GObject,
-  TDeps extends GObject,
+  TConfig extends SomeObject,
+  TDeps extends SomeObject,
   TRegistry extends RegistryMap = RegistryMap,
-  TScopedDeps extends GObject = GObject
+  TScopedDeps extends SomeObject = SomeObject
   > {
   /**
    * Add middleware to the application after framework middleware but before routes are added.
@@ -47,7 +47,9 @@ export interface DangerZone<
    *
    * @param customize
    */
-  setAppMiddleware(customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>): Webserver<TConfig, TDeps, TRegistry, TScopedDeps>,
+  setAppMiddleware(
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+  ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 
   /**
    * Register routes with the framework.  This approach gives you access to `app` and the WebContext.
@@ -57,7 +59,9 @@ export interface DangerZone<
    *
    * @param customize
    */
-  setAppRoutes(customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>): Webserver<TConfig, TDeps, TRegistry, TScopedDeps>,
+  setAppRoutes(
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+  ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 
   /**
    * Register error handling middleware.  Please be careful here.  Webserver already supplies error mapping
@@ -67,7 +71,9 @@ export interface DangerZone<
    *
    * @param customize
    */
-  setAppErrorMiddleware(customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>): Webserver<TConfig, TDeps, TRegistry, TScopedDeps>,
+  setAppErrorMiddleware(
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+  ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 }
 
 export type Route<TMethod extends Methods = any> = {
@@ -80,10 +86,10 @@ export type Route<TMethod extends Methods = any> = {
  * Mechanism to package a set of coherent functionality for registration with a Webserver.
  */
 export interface WebPlugin<
-  TConfig extends GObject = any,
-  TDeps extends GObject = any,
+  TConfig extends SomeObject = any,
+  TDeps extends SomeObject = any,
   TRegistry extends RegistryMap = RegistryMap,
-  TScopedDeps extends GObject = GObject
+  TScopedDeps extends SomeObject = SomeObject
   > extends ServicePlugin<TConfig, TDeps, TRegistry> {
   scopedDeps?: ScopeDepsFn<TScopedDeps, TDeps, BaseConfig & TConfig>,
   middleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>,
@@ -91,26 +97,29 @@ export interface WebPlugin<
   errorMiddleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>,
 }
 
+export type ConfigType<TConfig> = TConfig extends WebContext<infer T, any, any> ? T : never;
+export type DepsType<TDeps> = TDeps extends WebContext<any, infer T, any> ? T : never;
+export type RegistryType<TRegistry> = TRegistry extends WebContext<any, any, infer T> ? T : never;
+export type ScopedDepsType<TScopedDeps> = TScopedDeps extends WebContext<any, any, any, infer T> ? T : never;
+
 /**
  * Primary interface for building a Webserver.
  */
 export interface Webserver<
-  TConfig extends GObject,
-  TDeps extends GObject,
-  TRegistry extends RegistryMap = RegistryMap,
-  TScopedDeps extends GObject = GObject
-  > extends Service<WebContext<TConfig, TDeps, TRegistry>> {
+    TContext extends WebContext,
+    TPlugin extends WebPlugin<any, any, any, any>
+  > extends Service<TContext, TPlugin> {
   /**
    * Optional: Provide a factory that will supply scoped dependencies for each request.
    * @param factory
    */
-  scopedDeps(factory: ScopeDepsFn<TScopedDeps, TDeps, BaseConfig & TConfig>): this,
+  scopedDeps(factory: ScopeDepsFn<ScopedDepsType<TContext>, DepsType<TContext>, BaseConfig & ConfigType<TContext>>): this,
 
   /**
    * Take control of Express and add middleware, routes, etc.  By doing this, we assume you know
    * what you are doing and don't want any of the goodness provided by Webserver<T>.
    */
-  dangerZone: DangerZone<TConfig, TDeps, TRegistry, TScopedDeps>
+  dangerZone: DangerZone<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>
 
   /**
    * Official way to add managed middleware.  This wraps middleware in an error boundary.

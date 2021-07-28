@@ -80,7 +80,10 @@ type RegistryType<TRegistry> = TRegistry extends ServiceContext<any, any, infer 
 /**
  * Primary interface for building a server.
  */
-export interface Service<TServiceContext extends ServiceContext> {
+export interface Service<
+    TServiceContext extends ServiceContext,
+    TPlugin extends ServicePlugin<any, any>
+> {
 
   /**
    * REQUIRED: Configure the application by supplying a configuration factory.
@@ -98,7 +101,7 @@ export interface Service<TServiceContext extends ServiceContext> {
    * Add a plugin to the server.
    * @param plugins
    */
-  addPlugins(...plugins: ServicePlugin<any, any>[]): this,
+  addPlugins(...plugins: TPlugin[]): this,
 
   /**
    * This is a map of component-type to array of Awilix component names.

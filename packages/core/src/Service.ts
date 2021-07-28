@@ -13,8 +13,7 @@ import {
   Registry,
   RegistryFn,
 } from './model/Service';
-import { Server as HttpServer } from 'http';
-import { Server as HttpsServer } from 'https';
+import { HttpBasedServer } from "./model/HttpBasedServer";
 import { HttpProtocols } from './config/HttpProtocols';
 import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model/Service';
 import { Logger } from 'pino';
@@ -30,18 +29,20 @@ import mergeConfigFactories from './factories/mergeConfigFactories';
 import formatError from '@service-t/api/dist/errors/formatError';
 import getBaseDeps from './deps/getBaseDeps';
 
-type HttpBasedServer = HttpServer | HttpsServer;
-
 type ConfigType<TConfig> = TConfig extends ServiceContext<infer T, any, any> ? T : never;
 type DepsType<TDeps> = TDeps extends ServiceContext<any, infer T, any> ? T : never;
 type RegistryType<TRegistry> = TRegistry extends ServiceContext<any, any, infer T> ? T : never;
 
-export default class ServiceTemplate<TContext extends ServiceContext> implements Service<TContext> {
+export default class ServiceTemplate<
+      TContext extends ServiceContext,
+      TPlugin extends ServicePlugin<ConfigType<TContext>, DepsType<TContext>> = ServicePlugin<ConfigType<TContext>, DepsType<TContext>>
+    >
+    implements Service<TContext, TPlugin> {
 
   protected configFactory?: ConfigFactoryFn<ConfigType<TContext>>;
   protected depsFactory?: DepsFactoryFn<BaseConfig & ConfigType<TContext>, DepsType<TContext>>;
   protected registryFactory?: RegistryType<TContext> | RegistryFn<RegistryType<TContext>, BaseDeps & DepsType<TContext>, BaseConfig & ConfigType<TContext>>;
-  protected plugins: Array<ServicePlugin<any, any>> = [];
+  protected plugins: Array<TPlugin> = [];
 
   // The only reason I'm using an "_" prefix is because I want to name these the same as their matching method names.
   // The "_" variables also represent the initialized configuration of the server.
@@ -73,7 +74,7 @@ export default class ServiceTemplate<TContext extends ServiceContext> implements
     return this;
   }
 
-  addPlugins(...plugin: ServicePlugin<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>>[]): this {
+  addPlugins(...plugin: TPlugin[]): this {
     this.plugins.push(...plugin);
     return this;
   }
@@ -99,7 +100,7 @@ export default class ServiceTemplate<TContext extends ServiceContext> implements
     return getBaseDeps(config);
   }
 
-  protected filterPlugins(withField: keyof ServicePlugin): Array<ServicePlugin> {
+  protected filterPlugins(withField: keyof TPlugin): Array<TPlugin> {
     return this.plugins.filter(p => has(p, withField));
   }
 
