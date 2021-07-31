@@ -1,6 +1,6 @@
 {
   "name": "@service-t/core",
-  "version": "0.0.3-alpha.0",
+  "version": "0.0.4-alpha.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@service-t/api": "^0.0.3-alpha.0",
+    "@service-t/api": "^0.0.4-alpha.0",
     "awilix": "^4.3.4",
     "compression": "^1.7.4",
     "create-servers": "^3.2.0",
