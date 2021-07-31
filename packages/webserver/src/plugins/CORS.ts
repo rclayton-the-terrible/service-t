@@ -1,19 +1,19 @@
 import { asFunction } from 'awilix';
-import { ServicePlugin, ServiceContext } from '@service-t/core/dist/model/Service';
-import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
+import { WebPlugin, WebContext } from '../model/Webserver';
+import { BaseWebConfig } from "../config/BaseWebConfig";
 import { Express, RequestHandler } from 'express';
 
 import cors, { CorsOptions } from 'cors';
-import corsConfig from '@service-t/core/dist/config/mappers/corsConfig';
+import corsConfig from '../config/mappers/corsConfig';
 import configFromConstant from '@service-t/core/dist/factories/configFromConstant';
 
-type SuppliedConfig = Pick<BaseConfig, 'cors'>;
+type SuppliedConfig = Pick<BaseWebConfig, 'cors'>;
 
 type SuppliedDeps = {
   'middleware.cors': RequestHandler,
 }
 
-export default class CORS implements ServicePlugin<SuppliedConfig, SuppliedDeps> {
+export default class CORS implements WebPlugin<SuppliedConfig, SuppliedDeps> {
   name = 'CORS';
   // Default to pulling from the environment.
   config = corsConfig;
@@ -25,14 +25,14 @@ export default class CORS implements ServicePlugin<SuppliedConfig, SuppliedDeps>
     }
   }
 
-  async deps(config: BaseConfig) {
+  async deps(config: SuppliedConfig) {
     return {
       // Register the middleware with Awilix
       'middleware.cors': asFunction(() => cors(config.cors)),
     };
   }
 
-  async middleware(app: Express, ctx: ServiceContext) {
+  async middleware(app: Express, ctx: WebContext) {
     // Pull the middleware from DI and bind to Express.
     // NOTE: we could have just instantiated the middleware here and registered it with Express.
     // However, one advantage of registering it with Awilix is that a user could optionally shadow

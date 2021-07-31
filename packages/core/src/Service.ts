@@ -2,7 +2,7 @@ import { has, set } from 'lodash';
 import { BaseConfig } from './config/BaseConfig';
 import { BaseDeps } from './deps/BaseDeps';
 import { AwilixContainer, createContainer, NameAndRegistrationPair } from 'awilix';
-import { ServerConfig } from './config/ServerConfig';
+import { WebServerConfig } from './config/WebServerConfig';
 import { Startable } from '@service-t/api/dist/Startable';
 import { Stoppable } from '@service-t/api/dist/Stoppable';
 import {
@@ -22,7 +22,6 @@ import InternalError from '@service-t/api/dist/errors/InternalError';
 import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
 
 import baseConfig from './config/mappers/baseConfig';
-import corsConfig from './config/mappers/corsConfig';
 import express, { Express } from 'express';
 import createServers from 'create-servers';
 import mergeConfigFactories from './factories/mergeConfigFactories';
@@ -80,9 +79,10 @@ export default class ServiceTemplate<
   }
 
   protected async getBaseConfig(env: NodeJS.ProcessEnv): Promise<BaseConfig> {
+    const extFactories = await this.getAppConfigFactories();
     const factories = [
       baseConfig,
-      corsConfig,
+        ...extFactories,
     ];
     return mergeConfigFactories<BaseConfig>(env, factories);
   }
@@ -96,8 +96,20 @@ export default class ServiceTemplate<
     return configs.reduce((acc, pluginConfig) => Object.assign(acc, pluginConfig), {} as Partial<ConfigType<TContext>>);
   }
 
-  protected async getBaseDeps(config: BaseConfig): Promise<NameAndRegistrationPair<BaseDeps>> {
-    return getBaseDeps(config);
+  protected async getBaseDeps(config: BaseConfig & ConfigType<TContext>): Promise<NameAndRegistrationPair<BaseDeps>> {
+    const serverBaseDeps = await getBaseDeps(config);
+    let derivedDeps: NameAndRegistrationPair<any> = {};
+    for (const extDepsFactory of await this.getAppDepsFactories()) {
+      const extDeps = await extDepsFactory(config);
+      derivedDeps = {
+        ...derivedDeps,
+        ...extDeps,
+      }
+    }
+    return {
+      ...serverBaseDeps,
+      ...derivedDeps,
+    }
   }
 
   protected filterPlugins(withField: keyof TPlugin): Array<TPlugin> {
@@ -203,22 +215,18 @@ export default class ServiceTemplate<
     }
   }
 
-  protected createBaseExpressApp(config: ServerConfig): Express {
+  /**
+   * Open for extension by derived apps.  Generally, we only need a bare Admin server.
+   * @param config
+   * @protected
+   */
+  protected createAdminExpressApp(config: WebServerConfig): Express {
     const app = express();
-    if (config.enabled?.removePoweredBy) {
-      app.disable('x-powered-by');
-    }
-    if (config.enabled?.trustProxy) {
-      app.set('trust proxy', 1);
-    }
-    if (config.enabled?.compression) {
-      app.use(this._deps!['middleware.compression']);
-    }
-    app.use(this._deps!['middleware.requestParsers']);
+    app.use([express.json(), express.urlencoded({ extended: true })]);
     return app;
   }
 
-  protected async createServer(app: Express, config: ServerConfig): Promise<HttpBasedServer> {
+  protected async createServer(app: Express, config: WebServerConfig): Promise<HttpBasedServer> {
     return await new Promise<HttpBasedServer>((resolve, reject) => {
       const options = { handler: app };
       if (config.protocol === HttpProtocols.HTTPS) {
@@ -241,6 +249,7 @@ export default class ServiceTemplate<
   protected async startServers(): Promise<void> {
     try {
       this._adminServer = await this.createServer(this._adminApp!, this._config!.adminHttp);
+      await this.startAppServers();
     } catch (error) {
       this._logger!.error(formatError(error), 'An error occurred creating servers.');
       if (error.code) {
@@ -296,6 +305,11 @@ export default class ServiceTemplate<
       await this.stopServers();
     } catch (error) {
       this._logger?.error(formatError(error), 'An error occurred stopping servers.');
+    }
+    try {
+      await this.stopAppServers();
+    } catch (error) {
+      this._logger?.error(formatError(error), 'An error occurred stopping application servers.');
     }
     const stoppables = this.getComponentsByType<Stoppable>('stoppables');
     for (const stoppable of stoppables) {
@@ -370,23 +384,13 @@ export default class ServiceTemplate<
     // Ensure every registered component in the registry is defined in the Awilix Container.
     this.validatedRegistry();
 
-    this._logger.trace('Initializing and configuring Express.');
+    this._logger.trace('Initializing admin HTTP server.');
 
-    this._adminApp = this.createBaseExpressApp(this._config!.adminHttp);
+    this._adminApp = this.createAdminExpressApp(this._config!.adminHttp);
 
-    const ctx = this.createContext();
+    this._logger.trace('Initialize app configuration.');
 
-    this._logger.trace('Binding managed middleware to Express.');
-
-
-    this._logger.trace('Registering framework routes.');
-
-
-    this._logger.trace('Binding managed routes to Express.');
-
-
-    this._logger.trace('Invoking error middleware factories.');
-
+    const ctx = await this.initializeApp(this.createContext());
 
     this._logger.trace('Initialization complete. Returning handle to caller.');
 
@@ -395,5 +399,50 @@ export default class ServiceTemplate<
       start: this.start.bind(this),
       stop: this.stop.bind(this),
     };
+  }
+
+
+  /// FRAMEWORK EXTENSION POINTS ///
+
+  /**
+   * Supply an array of config factories that will supplement base configuration factories in creating
+   * the derived config for a server.
+   * @protected
+   */
+  protected async getAppConfigFactories(): Promise<Array<ConfigFactoryFn<Partial<BaseConfig & ConfigType<TContext>>>>> {
+    return [];
+  }
+
+  /**
+   * Supply an array of dependency factories that will supplement the base dependency tree in creating
+   * the derived dependency tree for a server.
+   * @protected
+   */
+  protected async getAppDepsFactories(): Promise<Array<DepsFactoryFn<BaseConfig & ConfigType<TContext>, DepsType<TContext>>>> {
+    return [];
+  }
+
+  /**
+   * Called in the lifecycle.  Since ServiceTemplate is not abstract, we supply a default (empty) version
+   * of this method.  Derivative classes of ServiceTemplate should override this method to bootstrap their
+   * own servers as needed.
+   * @protected
+   */
+  protected async startAppServers(): Promise<void> {}
+
+  /**
+   * Hook for stopping application servers started in derived classes.
+   * @protected
+   */
+  protected async stopAppServers(): Promise<void> {}
+
+  /**
+   * * Hook to allow framework developers to initialize Applications at the correct time in the service's lifecycle.
+   * @param context ServiceContext (not the actual TContext
+   * @returns extended context conforming to type TContext.  This means, if you add properties to the context, do it here.
+   * @protected
+   */
+  protected async initializeApp(context: ServiceContext<BaseConfig & ConfigType<TContext>, BaseDeps & DepsType<TContext>, RegistryType<TContext>>): Promise<TContext> {
+    return context as TContext;
   }
 }

@@ -1,8 +1,8 @@
-import { BaseConfig } from '../BaseConfig';
-
-import configFromEnv from '../../factories/configFromEnv';
+import {BaseWebConfig} from "../BaseWebConfig";
 
 import Joi from 'joi';
+
+import configFromEnv from "@service-t/core/dist/factories/configFromEnv";
 
 type Environment = {
   HTTP_COMPRESSION_CHUNK_SIZE: number,
@@ -19,7 +19,7 @@ const EnvironmentSchema = Joi.object<Environment>().keys({
   HTTP_COMPRESSION_WINDOW_BITS: Joi.number().integer().min(1).default(15),
 }).unknown(true);
 
-export default configFromEnv<Pick<BaseConfig, 'compression'>, Environment>(EnvironmentSchema, async (env) => ({
+export default configFromEnv<Pick<BaseWebConfig, 'compression'>, Environment>(EnvironmentSchema, async (env) => ({
   compression: {
     chunkSize: env.HTTP_COMPRESSION_CHUNK_SIZE,
     level: env.HTTP_COMPRESSION_LEVEL,

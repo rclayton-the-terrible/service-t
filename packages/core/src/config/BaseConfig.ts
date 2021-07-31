@@ -1,13 +1,8 @@
 import { NodeEnvironments } from './NodeEnvironments';
-import { CorsOptions } from 'cors';
-import { ServerConfig } from './ServerConfig';
-import { CompressionOptions } from 'compression';
+import { WebServerConfig } from './WebServerConfig';
 
 export type BaseConfig = {
   nodeEnvironment: NodeEnvironments,
   hostname: string,
-  http: ServerConfig,
-  adminHttp: ServerConfig,
-  cors?: CorsOptions,
-  compression?: CompressionOptions,
+  adminHttp: WebServerConfig,
 }

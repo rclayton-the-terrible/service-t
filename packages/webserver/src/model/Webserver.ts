@@ -1,5 +1,6 @@
 import { NameAndRegistrationPair } from 'awilix';
 import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
+import { BaseWebConfig } from "../config/BaseWebConfig";
 import { BaseDeps } from '@service-t/core/dist/deps/BaseDeps';
 import { Express, Request, Response, NextFunction, RequestHandler } from 'express';
 import { Service, ServiceContext, ServicePlugin, RegistryMap } from '@service-t/core/dist/model/Service';
@@ -19,13 +20,13 @@ export type ScopeDepsFn<
   TDeps extends SomeObject = SomeObject,
   TConfig extends BaseConfig = BaseConfig,
   TRegistry extends RegistryMap = RegistryMap
-  > = (req: Request, ctx: WebContext<BaseConfig & TConfig, BaseDeps & TDeps, TRegistry>) => Promise<NameAndRegistrationPair<TScopedDeps>>;
+  > = (req: Request, ctx: WebContext<BaseConfig & BaseWebConfig & TConfig, BaseDeps & TDeps, TRegistry>) => Promise<NameAndRegistrationPair<TScopedDeps>>;
 
 export type CustomizeAppFn<
   TDeps extends BaseDeps = BaseDeps,
   TConfig extends BaseConfig = BaseConfig,
   TRegistry extends RegistryMap = RegistryMap
-  > = (app: Express, ctx: WebContext<BaseConfig & TConfig, BaseDeps & TDeps, TRegistry>) => Promise<void>;
+  > = (app: Express, ctx: WebContext<BaseConfig & BaseWebConfig & TConfig, BaseDeps & TDeps, TRegistry>) => Promise<void>;
 
 export type InjectedHandler<
   TDeps extends BaseDeps = BaseDeps,
@@ -48,7 +49,7 @@ export interface DangerZone<
    * @param customize
    */
   setAppMiddleware(
-      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>
   ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 
   /**
@@ -60,7 +61,7 @@ export interface DangerZone<
    * @param customize
    */
   setAppRoutes(
-      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>
   ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 
   /**
@@ -72,7 +73,7 @@ export interface DangerZone<
    * @param customize
    */
   setAppErrorMiddleware(
-      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>
+      customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>
   ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 }
 
@@ -91,10 +92,10 @@ export interface WebPlugin<
   TRegistry extends RegistryMap = RegistryMap,
   TScopedDeps extends SomeObject = SomeObject
   > extends ServicePlugin<TConfig, TDeps, TRegistry> {
-  scopedDeps?: ScopeDepsFn<TScopedDeps, TDeps, BaseConfig & TConfig>,
-  middleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>,
-  routes?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>,
-  errorMiddleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & TConfig, TRegistry>,
+  scopedDeps?: ScopeDepsFn<TScopedDeps, TDeps, BaseConfig & BaseWebConfig & TConfig>,
+  middleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>,
+  routes?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>,
+  errorMiddleware?: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>,
 }
 
 export type ConfigType<TConfig> = TConfig extends WebContext<infer T, any, any> ? T : never;
