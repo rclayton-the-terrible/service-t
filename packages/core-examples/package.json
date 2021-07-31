@@ -12,8 +12,12 @@
     "coverage": "jest --coverage",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx"
   },
-  "author": "",
-  "license": "ISC",
+  "author": {
+    "name": "Richard Clayton",
+    "email": "i.am.richard.clayton@gmail.com",
+    "url": "https://rclayton@silvrback.com"
+  },
+  "license": "MIT",
   "dependencies": {
     "@service-t/api": "^0.0.2-alpha.0",
     "@service-t/core": "^0.0.2-alpha.0",
