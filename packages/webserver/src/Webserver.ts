@@ -1,9 +1,13 @@
 import {
     ConfigType,
-    CustomizeAppFn,
-    DangerZone, DepsType,
+    CustomizeAppFn, CustomRouterFn,
+    DangerZone,
+    DepsType,
     Handler,
-    Methods, RegistryType, ScopedDepsType,
+    Methods, Middleware,
+    RegistryType,
+    Route,
+    ScopedDepsType,
     ScopeDepsFn,
     WebContext,
     WebPlugin,
@@ -15,23 +19,41 @@ import {BaseDeps} from "@service-t/core/dist/deps/BaseDeps";
 import {HttpBasedServer} from "@service-t/core/dist/model/HttpBasedServer";
 import {NameAndRegistrationPair} from "awilix";
 import {BaseWebConfig} from "./config/BaseWebConfig";
+import {IRouterMatcher} from "express-serve-static-core";
+import {isFunction} from "lodash";
 
 import Service from "@service-t/core/dist/Service";
 
-import express, {Express, RequestHandler, Request} from 'express';
+import express, {Express, RequestHandler, Request, Router, IRouter } from 'express';
 import errorBoundary from "./middleware/errorBoundary";
 import formatError from "@service-t/api/dist/errors/formatError";
+
+type ManagedRouterFns = 'all'| 'use'| 'get'| 'put'| 'post'| 'delete'| 'patch'| 'options'|
+    'checkout'| 'connect'| 'head'| 'copy'| 'lock'| 'merge'| 'mkactivity'| 'mkcol'| 'move'| 'm-search'| 'notify'|
+    'propfind'| 'proppatch'| 'purge'| 'report'| 'search'| 'subscribe'| 'trace'| 'unlock'| 'unsubscribe';
+
+const MANAGED_ROUTER_FNS: Array<keyof IRouter> = [
+    'all', 'use', 'get', 'put', 'post', 'delete', 'patch', 'options',
+    'checkout', 'connect', 'head', 'copy', 'lock', 'merge', 'mkactivity', 'mkcol', 'move', 'm-search', 'notify',
+    'propfind', 'proppatch', 'purge', 'report', 'search', 'subscribe', 'trace', 'unlock', 'unsubscribe',
+];
 
 export default class WebserverTemplate<TContext extends WebContext>
     extends Service<TContext, WebPlugin>
     implements Webserver<TContext, WebPlugin> {
 
     protected scopedDepsFactory?: ScopeDepsFn<ScopedDepsType<TContext>, BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>;
+
+    // These are Danger Zone functions.  They mutate app directly outside of the default router.
     protected middlewareFactory?: CustomizeAppFn<BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>;
     protected routeFactory?: CustomizeAppFn<BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>;
     protected errorMiddlewareFactory?: CustomizeAppFn<BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>;
-    protected managedMiddleware: Array<{ paths: string[], handlers: Handler[] }> = [];
-    protected managedRoutes: Array<{ method: Methods, paths: string[], handlers: Handler[] }> = [];
+
+    // These are managed handlers that are wrapped in error boundaries.
+    protected managedMiddleware: Array<Middleware> = [];
+    protected managedRoutes: Array<Route> = [];
+    protected managedRouters: Array<CustomRouterFn<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>> = [];
+
     protected _app?: Express;
     protected _appServer?: HttpBasedServer;
 
@@ -41,17 +63,7 @@ export default class WebserverTemplate<TContext extends WebContext>
     }
 
     // TODO: Dynamic registration of deps
-    protected wrapMiddleware(handler: Handler): RequestHandler {
-        return (req, res, next) => {
-            const deps = res.locals.deps;
-            return errorBoundary(
-                (req1, res1, next1) =>
-                    handler(req1, res1, next1, deps))(req, res, next);
-        };
-    }
-
-    // TODO: Dynamic registration of deps
-    protected wrapRoute(handler: Handler): RequestHandler {
+    protected wrapHandler(handler: Handler): RequestHandler {
         return (req, res, next) => {
             const deps = res.locals.deps;
             return errorBoundary(
@@ -110,20 +122,18 @@ export default class WebserverTemplate<TContext extends WebContext>
         };
     }
 
-    use(paths?: string | string[], ...handlers: Handler[]): this {
-        this.managedMiddleware.push({
-            paths: (Array.isArray(paths) ? paths : [paths].filter(Boolean)) as string[],
-            handlers,
-        });
+    use(...middleware: Middleware[]): this {
+        this.managedMiddleware.push(...middleware);
         return this;
     }
 
-    route<TMethod extends Methods = any>(method: TMethod, paths: string | string[], ...handlers: Handler[]): this {
-        this.managedRoutes.push({
-            method: method,
-            paths: (Array.isArray(paths) ? paths : [paths]) as string[],
-            handlers,
-        });
+    route(...routes: Route[]): this {
+        this.managedRoutes.push(...routes);
+        return this;
+    }
+
+    addRouter(...routers: CustomRouterFn<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>[]): this {
+
         return this;
     }
 
@@ -177,7 +187,7 @@ export default class WebserverTemplate<TContext extends WebContext>
         return this._app;
     }
 
-    protected async initializeApp(context: ServiceContext<any, any, any>): Promise<TContext> {
+    protected async initializeApp(): Promise<TContext> {
 
         // Use aliases because it makes life easier.
         const logger = this._logger!;
@@ -186,6 +196,8 @@ export default class WebserverTemplate<TContext extends WebContext>
 
         logger.trace('Invoking middleware factories.');
 
+        const defaultRouter = this.createProxyRouter();
+        
         const middlewareFactories = [
             ...this.filterPlugins('middleware').map(p => p.middleware),
             this.errorMiddlewareFactory,
@@ -198,11 +210,10 @@ export default class WebserverTemplate<TContext extends WebContext>
         logger.trace('Binding managed middleware to Express.');
 
         for (const middleware of this.managedMiddleware) {
-            const wrappedMiddleware = middleware.handlers.map(m => this.wrapMiddleware(m));
             if (middleware.paths) {
-                app.use(middleware.paths, ...wrappedMiddleware);
+                defaultRouter.use(middleware.paths, middleware.handlers as RequestHandler);
             } else {
-                app.use(...wrappedMiddleware);
+                defaultRouter.use(middleware.handlers as RequestHandler);
             }
         }
 
@@ -221,10 +232,19 @@ export default class WebserverTemplate<TContext extends WebContext>
         }
 
         logger.trace('Binding managed routes to Express.');
-
+        
         for (const route of this.managedRoutes) {
-            const wrappedRoutes = route.handlers.map(m => this.wrapRoute(m));
-            app[route.method](route.paths, ...wrappedRoutes);
+            defaultRouter[route.method as ManagedRouterFns](route.paths, route.handlers as RequestHandler);
+        }
+
+        logger.trace('Registering routers.');
+
+        this._app!.use(defaultRouter);
+
+        for (const routerFn of this.managedRouters) {
+            const router = this.createProxyRouter();
+            await routerFn(this.createProxyRouter(), ctx as TContext);
+            this._app!.use(router);
         }
 
         logger.trace('Invoking error middleware factories.');
@@ -239,5 +259,33 @@ export default class WebserverTemplate<TContext extends WebContext>
         }
 
         return ctx as TContext;
+    }
+
+    protected createProxyRouter(): IRouter {
+        const router = Router();
+        return new Proxy(router, {
+            get: (target, property: keyof IRouter) => {
+                if (MANAGED_ROUTER_FNS.includes(property)) {
+                    const matcherFn = target[property] as IRouterMatcher<IRouter>;
+                    return new Proxy(matcherFn, {
+                        apply: (target: IRouterMatcher<IRouter>, thisArg: any, argArray: any[]): any => {
+                            const wrappedArgs = [];
+                            for (const arg of argArray) {
+                                if (Array.isArray(arg)) {
+                                    const wrappedArrayArg = []
+                                    for (const a of argArray as Array<any>) {
+                                        wrappedArrayArg.push(isFunction(a) ? this.wrapHandler(a) : a);
+                                    }
+                                    wrappedArgs.push(wrappedArrayArg);
+                                } else {
+                                    wrappedArgs.push(isFunction(arg) ? this.wrapHandler(arg) : arg)
+                                }
+                            }
+                        }
+                    });
+                }
+                return target[property];
+            }
+        });
     }
 }

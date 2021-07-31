@@ -2,9 +2,9 @@ import { NameAndRegistrationPair } from 'awilix';
 import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
 import { BaseWebConfig } from "../config/BaseWebConfig";
 import { BaseDeps } from '@service-t/core/dist/deps/BaseDeps';
-import { Express, Request, Response, NextFunction, RequestHandler } from 'express';
+import { Express, Request, Response, NextFunction, RequestHandler, IRouter } from 'express';
 import { Service, ServiceContext, ServicePlugin, RegistryMap } from '@service-t/core/dist/model/Service';
-import {SomeObject} from "@service-t/api/dist/SomeObject";
+import { SomeObject } from "@service-t/api/dist/SomeObject";
 
 export interface WebContext<
   TConfig extends SomeObject = any,
@@ -34,6 +34,13 @@ export type InjectedHandler<
 
 export type Handler = InjectedHandler | RequestHandler;
 export type Methods = 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head';
+
+export type CustomRouterFn<
+  TDeps extends BaseDeps = BaseDeps,
+  TConfig extends BaseConfig = BaseConfig,
+  TRegistry extends RegistryMap = RegistryMap,
+  TScopedDeps extends SomeObject = any
+  > = (router: IRouter, ctx: WebContext<BaseConfig & BaseWebConfig & TConfig, BaseDeps & TDeps, TRegistry, TScopedDeps>) => Promise<void>;
 
 export interface DangerZone<
   TConfig extends SomeObject,
@@ -75,6 +82,11 @@ export interface DangerZone<
   setAppErrorMiddleware(
       customize: CustomizeAppFn<BaseDeps & TDeps, BaseConfig & BaseWebConfig & TConfig, TRegistry>
   ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
+}
+
+export type Middleware = {
+  paths?: string | string[],
+  handlers: Handler | Array<Handler>
 }
 
 export type Route<TMethod extends Methods = any> = {
@@ -125,24 +137,35 @@ export interface Webserver<
   /**
    * Official way to add managed middleware.  This wraps middleware in an error boundary.
    *
+   * Note: this method binds all middleware to the "Default" router.  If you want a different behavior,
+   * use addRouter.
+   *
    * This MAY be called as many times as you like.
    *
-   * @param paths
-   * @param handlers
+   * @param middleware
    */
-  use(paths?: string | string[], ...handlers: Array<Handler>): this
+  use(...middleware: Middleware[]): this,
 
   /**
    * Official way to add managed routes.  This gives you access to request-scope dependencies, error
    * boundaries, and automatic metrics+tracing.
    *
+   * Note: this method binds all routes to the "Default" router.  If you want a different behavior,
+   * use addRouter.
+   *
    * This MAY be called as many times as you like.
    *
-   * @param method
-   * @param paths
-   * @param handlers
+   * @param routes
    */
-  route<
-    TMethod extends Methods = any
-    >(method: TMethod, paths: string | string[], ...handlers: Array<Handler>): this
+  route(...routes: Route[]): this,
+
+  /**
+   * Add a set of managed routes using an Express router.  This implementation will automatically wrap middleware
+   * and handlers with the appropriate middleware and injector functions.
+   *
+   * This MAY be called as many times as you like.
+   *
+   * @param routers
+   */
+  addRouter(...routers: CustomRouterFn<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>[]): this,
 }
