@@ -1,6 +1,6 @@
 {
   "name": "@service-t/webserver",
-  "version": "0.0.2-alpha.0",
+  "version": "0.0.3-alpha.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,8 +19,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@service-t/api": "^0.0.2-alpha.0",
-    "@service-t/core": "^0.0.2-alpha.0",
+    "@service-t/api": "^0.0.3-alpha.0",
+    "@service-t/core": "^0.0.3-alpha.0",
     "awilix": "^4.3.4",
     "boom": "^7.3.0",
     "express": "^4.17.1",
