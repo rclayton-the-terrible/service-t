@@ -1,1 +1,1 @@
-import {Webserver} from "../model/Webserver";
+import { Webserver } from '../model/Webserver';

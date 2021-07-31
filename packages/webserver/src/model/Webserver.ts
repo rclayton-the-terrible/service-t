@@ -1,10 +1,10 @@
 import { NameAndRegistrationPair } from 'awilix';
 import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
-import { BaseWebConfig } from "../config/BaseWebConfig";
+import { BaseWebConfig } from '../config/BaseWebConfig';
 import { BaseDeps } from '@service-t/core/dist/deps/BaseDeps';
 import { Express, Request, Response, NextFunction, RequestHandler, IRouter } from 'express';
 import { Service, ServiceContext, ServicePlugin, RegistryMap } from '@service-t/core/dist/model/Service';
-import { SomeObject } from "@service-t/api/dist/SomeObject";
+import { SomeObject } from '@service-t/api/dist/SomeObject';
 
 export interface WebContext<
   TConfig extends SomeObject = any,

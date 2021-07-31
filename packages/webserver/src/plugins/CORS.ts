@@ -1,6 +1,6 @@
 import { asFunction } from 'awilix';
 import { WebPlugin, WebContext } from '../model/Webserver';
-import { BaseWebConfig } from "../config/BaseWebConfig";
+import { BaseWebConfig } from '../config/BaseWebConfig';
 import { Express, RequestHandler } from 'express';
 
 import cors, { CorsOptions } from 'cors';

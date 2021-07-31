@@ -1,8 +1,8 @@
-import {BaseWebConfig} from "../BaseWebConfig";
+import { BaseWebConfig } from '../BaseWebConfig';
 
 import Joi from 'joi';
 
-import configFromEnv from "@service-t/core/dist/factories/configFromEnv";
+import configFromEnv from '@service-t/core/dist/factories/configFromEnv';
 
 type Environment = {
   HTTP_COMPRESSION_CHUNK_SIZE: number,

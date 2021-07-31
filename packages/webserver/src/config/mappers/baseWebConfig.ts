@@ -1,11 +1,11 @@
 import { Port, PortSchema } from '@service-t/api/dist/common';
-import {NodeEnvironments} from "@service-t/core/dist/config/NodeEnvironments";
-import {HttpProtocols} from "@service-t/core/dist/config/HttpProtocols";
-import {BaseWebConfig} from "../BaseWebConfig";
+import { NodeEnvironments } from '@service-t/core/dist/config/NodeEnvironments';
+import { HttpProtocols } from '@service-t/core/dist/config/HttpProtocols';
+import { BaseWebConfig } from '../BaseWebConfig';
 
 import Joi from 'joi';
 
-import configFromEnv from "@service-t/core/dist/factories/configFromEnv";
+import configFromEnv from '@service-t/core/dist/factories/configFromEnv';
 
 type Environment = {
   NODE_ENV: NodeEnvironments,

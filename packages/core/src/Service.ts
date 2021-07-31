@@ -13,7 +13,7 @@ import {
   Registry,
   RegistryFn,
 } from './model/Service';
-import { HttpBasedServer } from "./model/HttpBasedServer";
+import { HttpBasedServer } from './model/HttpBasedServer';
 import { HttpProtocols } from './config/HttpProtocols';
 import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model/Service';
 import { Logger } from 'pino';
@@ -36,7 +36,7 @@ export default class ServiceTemplate<
       TContext extends ServiceContext,
       TPlugin extends ServicePlugin<ConfigType<TContext>, DepsType<TContext>> = ServicePlugin<ConfigType<TContext>, DepsType<TContext>>
     >
-    implements Service<TContext, TPlugin> {
+implements Service<TContext, TPlugin> {
 
   protected configFactory?: ConfigFactoryFn<ConfigType<TContext>>;
   protected depsFactory?: DepsFactoryFn<BaseConfig & ConfigType<TContext>, DepsType<TContext>>;
@@ -82,7 +82,7 @@ export default class ServiceTemplate<
     const extFactories = await this.getAppConfigFactories();
     const factories = [
       baseConfig,
-        ...extFactories,
+      ...extFactories,
     ];
     return mergeConfigFactories<BaseConfig>(env, factories);
   }
@@ -104,12 +104,12 @@ export default class ServiceTemplate<
       derivedDeps = {
         ...derivedDeps,
         ...extDeps,
-      }
+      };
     }
     return {
       ...serverBaseDeps,
       ...derivedDeps,
-    }
+    };
   }
 
   protected filterPlugins(withField: keyof TPlugin): Array<TPlugin> {
@@ -428,13 +428,17 @@ export default class ServiceTemplate<
    * own servers as needed.
    * @protected
    */
-  protected async startAppServers(): Promise<void> {}
+  protected async startAppServers(): Promise<void> {
+    this._logger?.trace('Start App Servers');
+  }
 
   /**
    * Hook for stopping application servers started in derived classes.
    * @protected
    */
-  protected async stopAppServers(): Promise<void> {}
+  protected async stopAppServers(): Promise<void> {
+    this._logger?.trace('Stop App Servers');
+  }
 
   /**
    * * Hook to allow framework developers to initialize Applications at the correct time in the service's lifecycle.
