@@ -18,6 +18,9 @@
     "url": "https://rclayton@silvrback.com"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@service-t/api": "^0.0.4-alpha.0",
     "@service-t/core": "^0.0.4-alpha.0",
@@ -48,5 +51,5 @@
     "ts-node-dev": "^1.1.8",
     "typescript": "^4.3.5"
   },
-  "gitHead": "1daf8799be9c540d9551a3da8051536ed1c4620d"
+  "gitHead": "fb5a211b6195b30b1169fdb0eb94a344a26213f1"
 }

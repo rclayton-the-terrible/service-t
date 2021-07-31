@@ -18,6 +18,9 @@
     "url": "https://rclayton@silvrback.com"
   },
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "@types/joi": "^17.2.3",
     "@types/lodash": "^4.14.171",
@@ -34,5 +37,5 @@
     "joi": "^17.4.1",
     "lodash": "^4.17.21"
   },
-  "gitHead": "1daf8799be9c540d9551a3da8051536ed1c4620d"
+  "gitHead": "fb5a211b6195b30b1169fdb0eb94a344a26213f1"
 }
