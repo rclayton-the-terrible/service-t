@@ -1,49 +1,35 @@
 import { NodeEnvironments } from '../NodeEnvironments';
 import { BaseConfig } from '../BaseConfig';
 import { HttpProtocols } from '../HttpProtocols';
-import { Port, PortSchema } from '@service-t/api/dist/common';
+import { MillisecondsSchema, Port, PortSchema } from '@service-t/api/dist/common';
+import { LogLevels, LogLevelsSchema } from "../LogLevels";
 
 import configFromEnv from '../../factories/configFromEnv';
 
 import Joi from 'joi';
 
 type Environment = {
+  LOG_LEVEL: LogLevels,
   NODE_ENV: NodeEnvironments,
   HOSTNAME: string,
-  HTTP_PORT: Port,
-  HTTP_PROTOCOL: HttpProtocols,
-  HTTP_TRUST_PROXY: boolean,
-  HTTP_REMOVE_POWERED_BY: boolean,
-  HTTP_USE_COMPRESSION: boolean,
-  HTTP_USE_SCOPED_DEPS: boolean,
   ADMIN_HTTP_PORT: Port,
+  SHUTDOWN_GRACE_PERIOD: number,
 };
 
 const EnvironmentSchema = Joi.object<Environment>().keys({
+  LOG_LEVEL: LogLevelsSchema.default(LogLevels.Info),
   NODE_ENV: Joi.string().valid(...Object.values(NodeEnvironments)).default(NodeEnvironments.Production),
   HOSTNAME: Joi.string().default('unknown'),
-  HTTP_PORT: PortSchema.default(8080),
-  HTTP_PROTOCOL: Joi.string().valid(...Object.values(HttpProtocols)).default(HttpProtocols.HTTP),
-  HTTP_TRUST_PROXY: Joi.boolean().default(true),
-  HTTP_REMOVE_POWERED_BY: Joi.boolean().default(true),
-  HTTP_USE_COMPRESSION: Joi.boolean().default(true),
-  HTTP_USE_SCOPED_DEPS: Joi.boolean().default(true),
   ADMIN_HTTP_PORT: PortSchema.default(8081),
+  SHUTDOWN_GRACE_PERIOD: MillisecondsSchema.max(2 * 60 * 1000 /* 2m */).default(30 * 1000 /* 30s */),
 }).unknown(true);
 
 export default configFromEnv<Omit<BaseConfig, 'cors'>, Environment>(EnvironmentSchema, async (env) => ({
+  logger: {
+    level: env.LOG_LEVEL,
+  },
   nodeEnvironment: env.NODE_ENV,
   hostname: env.HOSTNAME,
-  http: {
-    protocol: env.HTTP_PROTOCOL,
-    port: env.HTTP_PORT,
-    enabled: {
-      trustProxy: env.HTTP_TRUST_PROXY,
-      removePoweredBy: env.HTTP_REMOVE_POWERED_BY,
-      compression: env.HTTP_USE_COMPRESSION,
-      scopeDeps: env.HTTP_USE_SCOPED_DEPS,
-    }
-  },
   adminHttp: {
     protocol: HttpProtocols.HTTP,
     port: env.ADMIN_HTTP_PORT,
@@ -54,4 +40,5 @@ export default configFromEnv<Omit<BaseConfig, 'cors'>, Environment>(EnvironmentS
       scopeDeps: false,
     }
   },
+  shutdownGracePeriod: env.SHUTDOWN_GRACE_PERIOD,
 }));

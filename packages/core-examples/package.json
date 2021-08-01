@@ -25,6 +25,7 @@
     "@service-t/api": "^0.0.5-alpha.0",
     "@service-t/core": "^0.0.5-alpha.0",
     "awilix": "^4.3.4",
+    "axios": "^0.21.1",
     "boom": "^7.3.0",
     "express": "^4.17.1",
     "joi": "^17.4.1",
@@ -32,6 +33,7 @@
     "pino": "^6.13.0"
   },
   "devDependencies": {
+    "@types/axios": "^0.14.0",
     "@types/boom": "^7.3.1",
     "@types/compression": "^1.7.1",
     "@types/cors": "^2.8.12",

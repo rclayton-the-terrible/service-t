@@ -6,6 +6,6 @@ import pino from 'pino';
 
 export default async function getBaseDeps(config: BaseConfig): Promise<NameAndRegistrationPair<BaseDeps>> {
   return {
-    logger: asFunction(() => pino({})),
+    logger: asFunction(() => pino({ level: config.logger.level })),
   };
 }

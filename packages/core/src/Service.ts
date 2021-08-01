@@ -17,6 +17,7 @@ import { HttpBasedServer } from './model/HttpBasedServer';
 import { HttpProtocols } from './config/HttpProtocols';
 import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model/Service';
 import { Logger } from 'pino';
+import { createTerminus } from '@godaddy/terminus';
 
 import InternalError from '@service-t/api/dist/errors/InternalError';
 import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
@@ -246,9 +247,36 @@ implements Service<TContext, TPlugin> {
     });
   }
 
+  protected setupShutdownHooks(): void {
+    createTerminus(this._adminServer, {
+      healthChecks: {
+        '/healthz': () => Promise.resolve({}),
+        verbatim: true,
+        // OK because it's on the admin port.
+        __unsafeExposeStackTraces: true,
+      },
+      caseInsensitive: false,
+      statusOk: 200,
+      statusError: 503,
+      timeout: this._config?.shutdownGracePeriod,
+      beforeShutdown: async () => {
+        this._logger?.info('Shutdown signal received.  Stopping server.');
+        await this.stop(false);
+      },
+      onSignal: async () => {
+        this._logger?.trace('onSignal');
+      },                         // [optional] cleanup function, returning a promise (used to be onSigterm)
+      onShutdown: async () => {
+        this._logger?.trace('onShutdown');
+      },                       // [optional] called right before exiting
+      logger: (message, error) => this._logger!.error(formatError(error), message),
+    });
+  }
+
   protected async startServers(): Promise<void> {
     try {
       this._adminServer = await this.createServer(this._adminApp!, this._config!.adminHttp);
+      this.setupShutdownHooks();
       await this.startAppServers();
     } catch (error) {
       this._logger!.error(formatError(error), 'An error occurred creating servers.');
@@ -296,21 +324,7 @@ implements Service<TContext, TPlugin> {
     }
   }
 
-  protected async stopServers(): Promise<void> {
-    await this.closeServer(this._adminServer, 'Admin Server');
-  }
-
-  protected async stop(): Promise<void> {
-    try {
-      await this.stopServers();
-    } catch (error) {
-      this._logger?.error(formatError(error), 'An error occurred stopping servers.');
-    }
-    try {
-      await this.stopAppServers();
-    } catch (error) {
-      this._logger?.error(formatError(error), 'An error occurred stopping application servers.');
-    }
+  protected async stopComponents(): Promise<void> {
     const stoppables = this.getComponentsByType<Stoppable>('stoppables');
     for (const stoppable of stoppables) {
       if (!stoppable.stop) {
@@ -324,6 +338,33 @@ implements Service<TContext, TPlugin> {
         this._logger?.error(formatError(error), 'Failed to stop component.');
       }
     }
+  }
+
+  protected async stop(closeAdminServer = true): Promise<void> {
+
+    this._logger?.trace('Stopping app servers.');
+
+    try {
+      await this.stopAppServers();
+    } catch (error) {
+      this._logger?.error(formatError(error), 'An error occurred stopping application servers.');
+    }
+    // Using terminus, the admin server will automatically be shutdown on SIGTERM.  If it's in the process
+    // of closing, we don't want to try closing it again.
+    if (closeAdminServer) {
+
+      this._logger?.trace('Manually closing the admin server (not a terminus shutdown).');
+
+      try {
+        await this.closeServer(this._adminServer, 'Admin Server');
+      } catch (error) {
+        this._logger?.error(formatError(error), 'An error occurred stopping servers.');
+      }
+    }
+
+    this._logger?.trace('Stopping components.');
+
+    await this.stopComponents();
   }
 
   protected createContext(): ServiceContext<BaseConfig & ConfigType<TContext>, BaseDeps & DepsType<TContext>, RegistryType<TContext>> {
@@ -400,7 +441,6 @@ implements Service<TContext, TPlugin> {
       stop: this.stop.bind(this),
     };
   }
-
 
   /// FRAMEWORK EXTENSION POINTS ///
 

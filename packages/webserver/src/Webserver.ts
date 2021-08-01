@@ -4,7 +4,7 @@ import {
   DangerZone,
   DepsType,
   Handler,
-  Methods, Middleware,
+  Middleware,
   RegistryType,
   Route,
   ScopedDepsType,
@@ -13,7 +13,6 @@ import {
   WebPlugin,
   Webserver
 } from './model/Webserver';
-import { ServiceContext } from '@service-t/core/dist/model/Service';
 import { BaseConfig } from '@service-t/core/dist/config/BaseConfig';
 import { BaseDeps } from '@service-t/core/dist/deps/BaseDeps';
 import { HttpBasedServer } from '@service-t/core/dist/model/HttpBasedServer';
@@ -24,6 +23,7 @@ import { isFunction } from 'lodash';
 
 import Service from '@service-t/core/dist/Service';
 
+import stoppable from "stoppable";
 import express, { Express, RequestHandler, Request, Router, IRouter } from 'express';
 import errorBoundary from './middleware/errorBoundary';
 import formatError from '@service-t/api/dist/errors/formatError';
@@ -164,6 +164,15 @@ export default class WebserverTemplate<TContext extends WebContext>
 
     protected async startAppServers(): Promise<void> {
       this._appServer = await this.createServer(this._app!, this._config!.http!);
+      // Assumption here is that we should gracefully terminate the HTTP server and leave
+      // another 3s for DB connections to shutdown, etc.
+      const gracePeriod = this._config!.shutdownGracePeriod > 5000 ?
+          this._config!.shutdownGracePeriod - 3000 :
+          this._config!.shutdownGracePeriod
+      // This is an external library that adds to nice request handling in the event of server
+      // shutdown.  It'll monkey patch the HTTP server, rejecting calls after shutdown, draining
+      // requests, until the server is finally closed.
+      stoppable(this._appServer, gracePeriod);
     }
 
     protected async stopAppServers(): Promise<void> {
