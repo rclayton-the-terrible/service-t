@@ -1,7 +1,7 @@
-import {NodeEnvironments} from './NodeEnvironments';
-import {WebServerConfig} from './WebServerConfig';
-import {Milliseconds} from "@service-t/api/dist/common";
-import {LogLevels} from "./LogLevels";
+import { NodeEnvironments } from './NodeEnvironments';
+import { WebServerConfig } from './WebServerConfig';
+import { Milliseconds } from '@service-t/api/dist/common';
+import { LogLevels } from './LogLevels';
 
 export type BaseConfig = {
   logger: {

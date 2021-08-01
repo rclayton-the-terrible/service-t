@@ -5,14 +5,47 @@ import { SomeObject } from '@service-t/api/dist/SomeObject';
 
 export type awilixComponentNames = string;
 
+/**
+ * The dependency injection system at the core of Service<T> (Awilix) does not support operations
+ * to resolve multiple components at a time.  This means we can't ask for all components that start
+ * with a specific prefix, or have some tag.  This is a limitation that affects the way Service<T> can
+ * provide essential functionality (like pulling all startable and stoppable components from the
+ * registry).  To get around this, Service<T> has this concept of "The Registry".
+ *
+ * The Registry is simply a map of interface name to Awilix component that implement the interface.
+ * The server uses the registry to resolve all components in the dependency tree.  The registry
+ * is open for app developers to also use, however, it's not essential.  You can achieve the same
+ * functionality in by using a custom resolver in Awilix.  Service<T> can't do this because it has
+ * to compose multiple registries (base registry, plugins, app) at runtime.
+ */
 export type RegistryMap = {
+  /**
+   * Components that start BEFORE the application servers come online.
+   */
   startables: awilixComponentNames[],
+  /**
+   * Components that stop AFTER the applications services shutdown.
+   */
   stoppables: awilixComponentNames[],
+  /**
+   * Components that implement the CronJob interface and registered IN-PROCESS (not distributed)
+   * jobs.
+   */
   crons: awilixComponentNames[],
+  /**
+   * Components that are evaluated for health when health checks are evaluated.
+   */
+  checks: awilixComponentNames[],
+  /**
+   * App/Developer defined components that are registered as collections.
+   */
   [interfaceName: string]: awilixComponentNames[],
 }
 
-export interface Registry<TRegistry extends RegistryMap> {
+/**
+ * Get all
+ */
+export interface Registry<TRegistry extends RegistryMap = RegistryMap> {
   getAll<T>(componentType: keyof TRegistry): Array<T>
 }
 

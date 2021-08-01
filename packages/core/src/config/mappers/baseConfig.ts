@@ -2,7 +2,7 @@ import { NodeEnvironments } from '../NodeEnvironments';
 import { BaseConfig } from '../BaseConfig';
 import { HttpProtocols } from '../HttpProtocols';
 import { MillisecondsSchema, Port, PortSchema } from '@service-t/api/dist/common';
-import { LogLevels, LogLevelsSchema } from "../LogLevels";
+import { LogLevels, LogLevelsSchema } from '../LogLevels';
 
 import configFromEnv from '../../factories/configFromEnv';
 

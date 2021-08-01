@@ -1,7 +1,7 @@
 import { has, set } from 'lodash';
 import { BaseConfig } from './config/BaseConfig';
 import { BaseDeps } from './deps/BaseDeps';
-import { AwilixContainer, createContainer, NameAndRegistrationPair } from 'awilix';
+import { asValue, AwilixContainer, createContainer, NameAndRegistrationPair } from 'awilix';
 import { WebServerConfig } from './config/WebServerConfig';
 import { Startable } from '@service-t/api/dist/Startable';
 import { Stoppable } from '@service-t/api/dist/Stoppable';
@@ -16,11 +16,14 @@ import {
 import { HttpBasedServer } from './model/HttpBasedServer';
 import { HttpProtocols } from './config/HttpProtocols';
 import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model/Service';
+import { ServiceHealthResult, ServiceHealthStatuses } from "@service-t/api/dist/health/ServiceHealthEvaluator";
+import { HealthCheckService } from "./model/HealthCheckService";
 import { Logger } from 'pino';
 import { createTerminus } from '@godaddy/terminus';
 
 import InternalError from '@service-t/api/dist/errors/InternalError';
 import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
+import ServiceUnavailableError from "@service-t/api/dist/errors/ServiceUnavailableError";
 
 import baseConfig from './config/mappers/baseConfig';
 import express, { Express } from 'express';
@@ -28,6 +31,7 @@ import createServers from 'create-servers';
 import mergeConfigFactories from './factories/mergeConfigFactories';
 import formatError from '@service-t/api/dist/errors/formatError';
 import getBaseDeps from './deps/getBaseDeps';
+
 
 type ConfigType<TConfig> = TConfig extends ServiceContext<infer T, any, any> ? T : never;
 type DepsType<TDeps> = TDeps extends ServiceContext<any, infer T, any> ? T : never;
@@ -110,6 +114,9 @@ implements Service<TContext, TPlugin> {
     return {
       ...serverBaseDeps,
       ...derivedDeps,
+      // We will leave a handle to the service registry in the dependency tree so that components
+      // that need to resolve registry items can get them in a natural way.
+      registry: asValue(this.getRegistry()),
     };
   }
 
@@ -247,10 +254,20 @@ implements Service<TContext, TPlugin> {
     });
   }
 
+  protected async evaluateServerHealth(): Promise<ServiceHealthResult> {
+    const healthCheckService = this._container!.resolve<HealthCheckService>('healthCheckService');
+    const result = await healthCheckService.runHealthChecks();
+    if (result.status === ServiceHealthStatuses.Unhealthy) {
+      throw new ServiceUnavailableError('Service', 'Server Failed Health Check.', result);
+    }
+    return result;
+  }
+
   protected setupShutdownHooks(): void {
+    const evaluateServiceHealth = this.evaluateServerHealth.bind(this);
     createTerminus(this._adminServer, {
       healthChecks: {
-        '/healthz': () => Promise.resolve({}),
+        '/healthz': evaluateServiceHealth,
         verbatim: true,
         // OK because it's on the admin port.
         __unsafeExposeStackTraces: true,
@@ -265,10 +282,10 @@ implements Service<TContext, TPlugin> {
       },
       onSignal: async () => {
         this._logger?.trace('onSignal');
-      },                         // [optional] cleanup function, returning a promise (used to be onSigterm)
+      },
       onShutdown: async () => {
         this._logger?.trace('onShutdown');
-      },                       // [optional] called right before exiting
+      },
       logger: (message, error) => this._logger!.error(formatError(error), message),
     });
   }
