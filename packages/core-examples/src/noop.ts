@@ -9,6 +9,7 @@ async function main() {
           mySvc: asValue({
               id: 'mySvc',
               async evaluateHealth(): Promise<HealthCheckResult | HealthCheckResult[]> {
+                  console.log('Calling for health check');
                   return {
                       id: 'mySvc',
                       status: HealthCheckStatuses.Unhealthy,

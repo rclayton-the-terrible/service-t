@@ -1,4 +1,4 @@
-import { HealthCheckResult, HealthCheckStatuses } from '../../../api/src/health/HealthCheck';
+import { HealthCheckResult, HealthCheckStatuses } from '@service-t/api/dist/health/HealthCheck';
 import { HealthCheckService } from '../model/HealthCheckService';
 import { Registry } from '../model/Service';
 import { Logger } from 'pino';

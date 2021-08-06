@@ -16,14 +16,14 @@ import {
 import { HttpBasedServer } from './model/HttpBasedServer';
 import { HttpProtocols } from './config/HttpProtocols';
 import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model/Service';
-import { ServiceHealthResult, ServiceHealthStatuses } from "@service-t/api/dist/health/ServiceHealthEvaluator";
-import { HealthCheckService } from "./model/HealthCheckService";
+import { ServiceHealthResult, ServiceHealthStatuses } from '@service-t/api/dist/health/ServiceHealthEvaluator';
+import { HealthCheckService } from './model/HealthCheckService';
 import { Logger } from 'pino';
 import { createTerminus } from '@godaddy/terminus';
 
 import InternalError from '@service-t/api/dist/errors/InternalError';
 import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
-import ServiceUnavailableError from "@service-t/api/dist/errors/ServiceUnavailableError";
+import ServiceUnavailableError from '@service-t/api/dist/errors/ServiceUnavailableError';
 
 import baseConfig from './config/mappers/baseConfig';
 import express, { Express } from 'express';
@@ -138,6 +138,7 @@ implements Service<TContext, TPlugin> {
       startables: [] as string[],
       stoppables: [] as string[],
       crons: [] as string[],
+      checks: [] as string[],
     } as Partial<RegistryType<TContext>>;
   }
 
