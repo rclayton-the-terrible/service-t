@@ -19,11 +19,10 @@ import { Service, ServiceContext, ServiceOperator, ServicePlugin } from './model
 import { ServiceHealthResult, ServiceHealthStatuses } from '@service-t/api/dist/health/ServiceHealthEvaluator';
 import { HealthCheckService } from './model/HealthCheckService';
 import { Logger } from 'pino';
-import { createTerminus } from '@godaddy/terminus';
+import {createTerminus, HealthCheckError} from '@godaddy/terminus';
 
 import InternalError from '@service-t/api/dist/errors/InternalError';
 import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
-import ServiceUnavailableError from '@service-t/api/dist/errors/ServiceUnavailableError';
 
 import baseConfig from './config/mappers/baseConfig';
 import express, { Express } from 'express';
@@ -259,7 +258,9 @@ implements Service<TContext, TPlugin> {
     const healthCheckService = this._container!.resolve<HealthCheckService>('healthCheckService');
     const result = await healthCheckService.runHealthChecks();
     if (result.status === ServiceHealthStatuses.Unhealthy) {
-      throw new ServiceUnavailableError('Service', 'Server Failed Health Check.', result);
+      // We have to throw a Terminus HealthCheckError or we won't get the results output
+      // with the request.
+      throw new HealthCheckError('One or more health checks failed.', result.checks);
     }
     return result;
   }

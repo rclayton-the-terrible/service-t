@@ -11,6 +11,7 @@ export enum ServiceHealthStatuses {
  */
 export type ServiceHealthResult = {
     status: ServiceHealthStatuses,
+    checks: Array<HealthCheckResult>,
     /**
      * Append any other pertinent information you think would be important to display in the Admin health check route.
      */

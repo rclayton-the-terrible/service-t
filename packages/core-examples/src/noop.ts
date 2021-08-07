@@ -27,12 +27,15 @@ async function main() {
 
     await server.start();
 
-// Hit the health route on the admin server.
-    const { data } = await Axios.get('http://localhost:8081/healthz');
+    // Hit the health route on the admin server.
+    try {
+        const {data} = await Axios.get('http://localhost:8081/healthz');
+        console.log(data);
+    } catch (error) {
+        console.log(error.response?.data);
+    }
 
-    console.log('Health:', data);
-
-    await server.stop();
+    // await server.stop();
 }
 
 main().catch(error => console.error(error));
