@@ -1,6 +1,6 @@
 {
   "name": "@service-t/webserver-examples",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   "dependencies": {
     "@service-t/api": "^0.1.0",
     "@service-t/core": "^0.1.0",
-    "@service-t/webserver": "^0.1.0",
+    "@service-t/webserver": "^0.1.1",
     "awilix": "^4.3.4",
     "axios": "^0.21.1",
     "boom": "^7.3.0",
