@@ -1,6 +1,6 @@
 {
   "name": "@service-t/core",
-  "version": "0.0.5-alpha.0",
+  "version": "0.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@godaddy/terminus": "^4.9.0",
-    "@service-t/api": "^0.0.5-alpha.0",
+    "@service-t/api": "^0.1.0",
     "awilix": "^4.3.4",
     "axios": "^0.21.1",
     "bluebird": "^3.7.2",
