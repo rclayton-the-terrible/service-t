@@ -1,14 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 
-import ResourceNotFoundError from '../../../api/src/errors/ResourceNotFoundError';
-import ValidationError from '../../../api/src/errors/ValidationError';
-import AuthenticationRequiredError from '../../../api/src/errors/AuthenticationRequiredError';
-import UnknownAuthenticationRealmError from '../../../api/src/errors/UnknownAuthenticationRealmError';
-import InvalidAuthenticationError from '../../../api/src/errors/InvalidAuthenticationError';
-import ServiceUnavailableError from '../../../api/src/errors/ServiceUnavailableError';
-import BadConfigurationError from '../../../api/src/errors/BadConfigurationError';
-import BadStateError from '../../../api/src/errors/BadStateError';
-import InternalError from '../../../api/src/errors/InternalError';
+import ResourceNotFoundError from '@service-t/api/dist/errors/ResourceNotFoundError';
+import ValidationError from '@service-t/api/dist/errors/ValidationError';
+import AuthenticationRequiredError from '@service-t/api/dist/errors/AuthenticationRequiredError';
+import UnknownAuthenticationRealmError from '@service-t/api/dist/errors/UnknownAuthenticationRealmError';
+import InvalidAuthenticationError from '@service-t/api/dist/errors/InvalidAuthenticationError';
+import ServiceUnavailableError from '@service-t/api/dist/errors/ServiceUnavailableError';
+import BadConfigurationError from '@service-t/api/dist/errors/BadConfigurationError';
+import BadStateError from '@service-t/api/dist/errors/BadStateError';
+import InternalError from '@service-t/api/dist/errors/InternalError';
 
 import errorMapper from './errorMapper';
 

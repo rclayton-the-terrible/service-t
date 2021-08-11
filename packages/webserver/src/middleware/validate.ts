@@ -6,7 +6,7 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 
 import Boom from 'boom';
 
-import formatError from '../../../api/src/errors/formatError';
+import formatError from '@service-t/api/dist/errors/formatError';
 
 type ValidationOptions = {
   /**

@@ -19,6 +19,7 @@ import { HttpBasedServer } from '@service-t/core/dist/model/HttpBasedServer';
 import { NameAndRegistrationPair } from 'awilix';
 import { BaseWebConfig } from './config/BaseWebConfig';
 import { IRouterMatcher } from 'express-serve-static-core';
+import { ConfigFactoryFn, DepsFactoryFn } from "@service-t/core/dist/model/Service";
 import { isFunction } from 'lodash';
 
 import Service from '@service-t/core/dist/Service';
@@ -27,6 +28,9 @@ import stoppable from "stoppable";
 import express, { Express, RequestHandler, Request, Router, IRouter } from 'express';
 import errorBoundary from './middleware/errorBoundary';
 import formatError from '@service-t/api/dist/errors/formatError';
+import getBaseWebConfig from './config/mappers/baseWebConfig';
+import getCompressionConfig from './config/mappers/compressionConfig';
+import getBaseDeps from "./deps/getBaseDeps";
 
 type ManagedRouterFns = 'all'| 'use'| 'get'| 'put'| 'post'| 'delete'| 'patch'| 'options'|
     'checkout'| 'connect'| 'head'| 'copy'| 'lock'| 'merge'| 'mkactivity'| 'mkcol'| 'move'| 'm-search'| 'notify'|
@@ -50,12 +54,20 @@ export default class WebserverTemplate<TContext extends WebContext>
     protected errorMiddlewareFactory?: CustomizeAppFn<BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>;
 
     // These are managed handlers that are wrapped in error boundaries.
-    protected managedMiddleware: Array<Middleware> = [];
-    protected managedRoutes: Array<Route> = [];
+    protected managedMiddleware: Array<Middleware<DepsType<TContext> & ScopedDepsType<TContext>>> = [];
+    protected managedRoutes: Array<Route<DepsType<TContext> & ScopedDepsType<TContext>>> = [];
     protected managedRouters: Array<CustomRouterFn<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>> = [];
 
     protected _app?: Express;
     protected _appServer?: HttpBasedServer;
+
+  protected async getAppConfigFactories(): Promise<Array<ConfigFactoryFn<any>>> {
+    return [getBaseWebConfig, getCompressionConfig];
+  }
+
+  protected async getAppDepsFactories(): Promise<Array<DepsFactoryFn<any, any>>> {
+    return [getBaseDeps];
+  }
 
     scopedDeps(factory: ScopeDepsFn<ScopedDepsType<TContext>, BaseDeps & DepsType<TContext>, BaseConfig & BaseWebConfig & ConfigType<TContext>, RegistryType<TContext>>): this {
       this.scopedDepsFactory = factory;
@@ -122,12 +134,12 @@ export default class WebserverTemplate<TContext extends WebContext>
       };
     }
 
-    use(...middleware: Middleware[]): this {
+    use(...middleware: Middleware<DepsType<TContext> & ScopedDepsType<TContext>>[]): this {
       this.managedMiddleware.push(...middleware);
       return this;
     }
 
-    route(...routes: Route[]): this {
+    route(...routes: Route<DepsType<TContext> & ScopedDepsType<TContext>>[]): this {
       this.managedRoutes.push(...routes);
       return this;
     }

@@ -1,16 +1,16 @@
 import { ErrorRequestHandler } from 'express';
 import { isObject } from 'lodash';
-import { BAD_CONFIGURATION_ERROR_CODE } from '../../../api/src/errors/BadConfigurationError';
-import { BAD_STATE_ERROR_CODE } from '../../../api/src/errors/BadStateError';
-import { INVALID_AUTHENTICATION_ERROR } from '../../../api/src/errors/InvalidAuthenticationError';
-import { UNKNOWN_AUTHENTICATION_REALM_ERROR } from '../../../api/src/errors/UnknownAuthenticationRealmError';
+import { BAD_CONFIGURATION_ERROR_CODE } from '@service-t/api/dist/errors/BadConfigurationError';
+import { BAD_STATE_ERROR_CODE } from '@service-t/api/dist/errors/BadStateError';
+import { INVALID_AUTHENTICATION_ERROR } from '@service-t/api/dist/errors/InvalidAuthenticationError';
+import { UNKNOWN_AUTHENTICATION_REALM_ERROR } from '@service-t/api/dist/errors/UnknownAuthenticationRealmError';
 
 import Boom from 'boom';
-import ResourceNotFoundError, { RESOURCE_NOT_FOUND_ERROR_CODE } from '../../../api/src/errors/ResourceNotFoundError';
-import ValidationError, { VALIDATION_ERROR_CODE } from '../../../api/src/errors/ValidationError';
-import AuthenticationRequiredError, { AUTHENTICATION_REQUIRED_ERROR_CODE } from '../../../api/src/errors/AuthenticationRequiredError';
-import ServiceUnavailableError, { SERVICE_UNAVAILABLE_ERROR_CODE } from '../../../api/src/errors/ServiceUnavailableError';
-import InternalError, { INTERNAL_ERROR_CODE } from '../../../api/src/errors/InternalError';
+import ResourceNotFoundError, { RESOURCE_NOT_FOUND_ERROR_CODE } from '@service-t/api/dist/errors/ResourceNotFoundError';
+import ValidationError, { VALIDATION_ERROR_CODE } from '@service-t/api/dist/errors/ValidationError';
+import AuthenticationRequiredError, { AUTHENTICATION_REQUIRED_ERROR_CODE } from '@service-t/api/dist/errors/AuthenticationRequiredError';
+import ServiceUnavailableError, { SERVICE_UNAVAILABLE_ERROR_CODE } from '@service-t/api/dist/errors/ServiceUnavailableError';
+import InternalError, { INTERNAL_ERROR_CODE } from '@service-t/api/dist/errors/InternalError';
 
 type ErrorWithCode = {
   code: string,

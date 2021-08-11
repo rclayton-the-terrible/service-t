@@ -32,7 +32,7 @@ export type InjectedHandler<
   TDeps extends BaseDeps = BaseDeps,
   > = (req: Request, res: Response, next: NextFunction, deps: TDeps) => any;
 
-export type Handler = InjectedHandler | RequestHandler;
+export type Handler<TDeps extends BaseDeps = BaseDeps> = InjectedHandler<TDeps> | RequestHandler;
 export type Methods = 'all' | 'get' | 'post' | 'put' | 'delete' | 'patch' | 'options' | 'head';
 
 export type CustomRouterFn<
@@ -84,15 +84,15 @@ export interface DangerZone<
   ): Webserver<WebContext<TConfig, TDeps, TRegistry, TScopedDeps>, WebPlugin>,
 }
 
-export type Middleware = {
+export type Middleware<TDeps extends BaseDeps = BaseDeps> = {
   paths?: string | string[],
-  handlers: Handler | Array<Handler>
+  handlers: Handler<TDeps> | Array<Handler<TDeps>>
 }
 
-export type Route<TMethod extends Methods = any> = {
+export type Route<TMethod extends Methods = any, TDeps extends BaseDeps = BaseDeps> = {
   method: TMethod,
   paths: string | string[],
-  handlers: Handler | Array<Handler>
+  handlers: Handler<TDeps> | Array<Handler<TDeps>>
 }
 
 /**
@@ -144,7 +144,7 @@ export interface Webserver<
    *
    * @param middleware
    */
-  use(...middleware: Middleware[]): this,
+  use(...middleware: Middleware<DepsType<TContext> & ScopedDepsType<TContext>>[]): this,
 
   /**
    * Official way to add managed routes.  This gives you access to request-scope dependencies, error
@@ -157,7 +157,7 @@ export interface Webserver<
    *
    * @param routes
    */
-  route(...routes: Route[]): this,
+  route(...routes: Route<DepsType<TContext> & ScopedDepsType<TContext>>[]): this,
 
   /**
    * Add a set of managed routes using an Express router.  This implementation will automatically wrap middleware

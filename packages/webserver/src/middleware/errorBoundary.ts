@@ -1,6 +1,6 @@
 import { RequestHandler } from 'express';
 
-import formatError from '../../../api/src/errors/formatError';
+import formatError from '@service-t/api/dist/errors/formatError';
 
 export default function errorBoundary(handler: RequestHandler): RequestHandler {
   return async (req, res, next) => {
