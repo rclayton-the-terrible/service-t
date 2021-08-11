@@ -1,9 +1,10 @@
 import {
   ConfigType,
-  CustomizeAppFn, CustomRouterFn,
+  CustomizeAppFn,
+  CustomRouterFn,
   DangerZone,
   DepsType,
-  Handler,
+  InjectedHandler,
   Middleware,
   RegistryType,
   Route,
@@ -75,7 +76,7 @@ export default class WebserverTemplate<TContext extends WebContext>
     }
 
     // TODO: Dynamic registration of deps
-    protected wrapHandler(handler: Handler): RequestHandler {
+    protected wrapHandler(handler: InjectedHandler): RequestHandler {
       return (req, res, next) => {
         const deps = res.locals.deps;
         return errorBoundary(
@@ -145,7 +146,7 @@ export default class WebserverTemplate<TContext extends WebContext>
     }
 
     addRouter(...routers: CustomRouterFn<ConfigType<TContext>, DepsType<TContext>, RegistryType<TContext>, ScopedDepsType<TContext>>[]): this {
-
+      this.managedRouters.push(...routers);
       return this;
     }
 
@@ -260,26 +261,26 @@ export default class WebserverTemplate<TContext extends WebContext>
 
       logger.trace('Registering routers.');
 
-        this._app!.use(defaultRouter);
+      this._app!.use(defaultRouter);
 
-        for (const routerFn of this.managedRouters) {
-          const router = this.createProxyRouter();
-          await routerFn(this.createProxyRouter(), ctx as TContext);
-            this._app!.use(router);
-        }
+      for (const routerFn of this.managedRouters) {
+        const router = this.createProxyRouter();
+        await routerFn(router, ctx as TContext);
+        this._app!.use(router);
+      }
 
-        logger.trace('Invoking error middleware factories.');
+      logger.trace('Invoking error middleware factories.');
 
-        const errorMiddlewareFactories = [
-          this.errorMiddlewareFactory,
-          ...this.filterPlugins('errorMiddleware').map(p => p.errorMiddleware),
-        ].filter(Boolean);
+      const errorMiddlewareFactories = [
+        this.errorMiddlewareFactory,
+        ...this.filterPlugins('errorMiddleware').map(p => p.errorMiddleware),
+      ].filter(Boolean);
 
-        for (const errorMiddlewareFactory of errorMiddlewareFactories) {
-          await this.errorMiddlewareFactory!(app, ctx);
-        }
+      for (const errorMiddlewareFactory of errorMiddlewareFactories) {
+        await this.errorMiddlewareFactory!(app, ctx);
+      }
 
-        return ctx as TContext;
+      return ctx as TContext;
     }
 
     protected createProxyRouter(): IRouter {
@@ -302,6 +303,7 @@ export default class WebserverTemplate<TContext extends WebContext>
                     wrappedArgs.push(isFunction(arg) ? this.wrapHandler(arg) : arg);
                   }
                 }
+                target.apply(router, wrappedArgs as any);
               }
             });
           }

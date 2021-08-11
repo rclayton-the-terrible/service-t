@@ -19,7 +19,6 @@ async function main() {
     .route({
       method: 'get',
       paths: '/bar',
-      // @ts-ignore
       async handlers(req: Request,  res: Response, next: NextFunction, deps: Deps) {
         const { runFoo } = deps;
         res.send(await runFoo());
@@ -35,10 +34,11 @@ async function main() {
 
   await webserver.start();
 
-  // const { data } = await Axios.get('http://localhost:8080/foo');
-  const { data } = await Axios.get('http://localhost:8080/bar');
+  const { data: req1Data } = await Axios.get('http://localhost:8080/foo');
+  console.log('DATA:', req1Data);
 
-  console.log(data);
+  const { data: req2Data } = await Axios.get('http://localhost:8080/bar');
+  console.log('DATA:', req2Data);
 
   await webserver.stop();
 }
